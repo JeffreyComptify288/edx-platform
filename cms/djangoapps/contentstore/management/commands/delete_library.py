@@ -6,6 +6,7 @@ import json
 
 from cms.djangoapps.contentstore.views.library import library_blocks_view
 from django.core.management.base import BaseCommand
+from lms.djangoapps.ccx.modulestore import CCXModulestoreWrapper
 from opaque_keys.edx.keys import CourseKey
 from opaque_keys.edx.locator import LibraryLocator
 from xmodule.modulestore.django import modulestore
@@ -35,12 +36,16 @@ class Command(BaseCommand):
 
         print(f'"****** In management command to delete library {library_key}. Looking for libraries ...')
         store = modulestore()
+        wrapper = CCXModulestoreWrapper(store)
         if not hasattr(store, 'get_libraries'):
             print ("###### This modulestore does not support get_libraries() ######")
         libraries = store.get_libraries()  # BIS DEBUG deliberately crossing wires (course instead of lib)
         for lib in libraries:
             print(f'####### found library {lib.display_name}')
             self._display_library(store, lib.location.library_key)
+            print("About to delete library")
+            restore = wrapper.delete_item(lib.location, "no user")
+            print(f"Returned value = {str(restore)}")
         print("****** Done searching ******")
 
 
