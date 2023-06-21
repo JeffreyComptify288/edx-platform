@@ -52,8 +52,8 @@ class Command(BaseCommand):
         print(f'"****** Looking for libraries ######')
         if not hasattr(self.store, 'get_libraries'):
             print ("###### This modulestore does not support get_libraries() ######")
-        libraries = self.store.get_libraries()  # BIS DEBUG deliberately crossing wires (course instead of lib)
-        print (f'****** Found {libraries.length} libraries ******')
+        libraries = self.store.get_libraries()
+        print (f'****** Found {len(libraries)} libraries ******')
         return libraries
 
     def get_library(self, library_key):
@@ -69,6 +69,22 @@ class Command(BaseCommand):
         """
         library_key = lib.location.library_key
 
+        # BIS DEBUG
+        print ("##### Trying to get library index #######")
+        index = self.store.get_course_index(library_key)
+        if index is None:
+            raise Exception("Index not found")
+        if library_key.branch not in index['versions']:
+            raise Exception("Branch not found")
+        print ("######## Done getting library index ########")
+
+        print (f"###### Trying to get library structure. branch = {library_key.branch} #######")
+        version_guid = index['versions'][library_key.branch]
+        entry = self.get_structure(library_key, version_guid)
+        if entry is None:
+            raise Exception(f'Structure: {version_guid}')
+        print("###### Done getting library structure ########")
+        
         print(f"****** Looking for block info on {str(library_key)} library")
         response_format = 'json'
         json_bytestring = library_blocks_view(lib, 'delete_library management command', response_format).content
@@ -76,13 +92,13 @@ class Command(BaseCommand):
         print (f"##### dict_str = {dict_str} ##### ")
         library_dict = json.loads(dict_str)
         block_usage_strings = library_dict['blocks']
-        print(f"****** Found {block_usage_strings.length} blocks ******")
+        print(f"****** Found {len(block_usage_strings)} blocks ******")
 
         return block_usage_strings
 
-def delete_library_contents(self, block_usage_strings):
-    for usage_string in block_usage_strings:
-        usage_locator = BlockUsageLocator.from_string(usage_string)
-        print(f"###### About to attempt to delete {usage_string} ######")
-        self.store.delete_item(usage_locator, "delete_library management command")
-        print(f"###### Done deleting {usage_string} ######")
+    def delete_library_contents(self, block_usage_strings):
+        for usage_string in block_usage_strings:
+            block_locator = BlockUsageLocator.from_string(usage_string)
+            print(f"###### About to attempt to delete {usage_string} ######")
+            self.store.delete_item(block_locator, "delete_library management command")
+            print(f"###### Done deleting {usage_string} ######")
