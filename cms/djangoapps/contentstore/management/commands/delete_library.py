@@ -6,8 +6,7 @@ import json
 
 from cms.djangoapps.contentstore.views.library import library_blocks_view
 from django.core.management.base import BaseCommand
-from lms.djangoapps.ccx.modulestore import CCXModulestoreWrapper
-from opaque_keys.edx.keys import CourseKey
+from opaque_keys.edx.locator import BlockUsageLocator
 from opaque_keys.edx.locator import LibraryLocator
 from xmodule.modulestore.django import modulestore
 
@@ -20,6 +19,7 @@ class Command(BaseCommand):
     """
 
     help = 'Delete a MongoDB backed course'
+    store = modulestore()
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -28,55 +28,61 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+
+        print("****** In management command to delete library  ******")
+        print("For now, processing all discovered libraries equally (ignoring CLI-supplied library key)")
+        # library_key = self.get_library_key(options)
+
+        libraries = self.get_libraries()
+        for lib in libraries:
+            print(f'####### Processing library {lib.display_name}')
+            block_usage_strings = self.display_library(lib)
+            print("###### About to delete blocks in library ######")
+            self.delete_library_contents(block_usage_strings)
+
+    def get_library_key(self, **options):
         try:
             library_key = str(options['library_key'], 'utf8')
         # May already be decoded to unicode if coming in through tests, this is ok.
         except TypeError:
             library_key = str(options['library_key'])
+        return library_key
 
-        print(f'"****** In management command to delete library {library_key}. Looking for libraries ...')
-        store = modulestore()
-        wrapper = CCXModulestoreWrapper(store)
-        if not hasattr(store, 'get_libraries'):
+    def get_libraries(self):
+        print(f'"****** Looking for libraries ######')
+        if not hasattr(self.store, 'get_libraries'):
             print ("###### This modulestore does not support get_libraries() ######")
-        libraries = store.get_libraries()  # BIS DEBUG deliberately crossing wires (course instead of lib)
-        for lib in libraries:
-            print(f'####### found library {lib.display_name}')
-            self._display_library(store, lib.location.library_key)
-            print("About to delete library")
-            restore = wrapper.delete_item(lib.location, "no user")
-            print(f"Returned value = {str(restore)}")
-        print("****** Done searching ******")
+        libraries = self.store.get_libraries()  # BIS DEBUG deliberately crossing wires (course instead of lib)
+        print (f'****** Found {libraries.length} libraries ******')
+        return libraries
 
-
-
-    def _display_library(self, store, library_key):
-        """
-        Displays single library
-        """
-        print(f"****** Looking for block info on {str(library_key)} library")
-        # library_key = CourseKey.from_string(library_key_string)
-        if not isinstance(library_key, LibraryLocator):
-            print("Non-library key passed to content libraries API.")  # Should never happen due to url regex
-            exit(0)
-
-        library = modulestore().get_library(library_key)
+    def get_library(self, library_key):
+        library = self.store.get_library(library_key)
         if library is None:
             print("Library not found", str(library_key))
             exit(0)
+        return library
 
+    def display_library(self, lib):
+        """
+        Displays single library
+        """
+        library_key = lib.location.library_key
+
+        print(f"****** Looking for block info on {str(library_key)} library")
         response_format = 'json'
-        json_bytestring = library_blocks_view(library, 'delete_library management command', response_format).content
-        print("###### Returned from library_blocks_view() #########")
+        json_bytestring = library_blocks_view(lib, 'delete_library management command', response_format).content
         dict_str = json_bytestring.decode("UTF-8")
         print (f"##### dict_str = {dict_str} ##### ")
         library_dict = json.loads(dict_str)
-        print (f'##### library_dict = {library_dict} ######')
+        block_usage_strings = library_dict['blocks']
+        print(f"****** Found {block_usage_strings.length} blocks ******")
 
-        # print(f'######## {str(dict_str)} ###########')
-        for usage_key in library_dict['blocks']:
-            block_usage_key = library_key.make_usage_key('html', 'e7d84016436b4c2dac22e9cbde9e7345')
-            print(f"###### About to attempt to delete {str(block_usage_key)} ######")
-            store.delete_item(block_usage_key, "delete_library management command")
-            print(f"###### Done deleting {str(block_usage_key)} ######")
-        print("****** Done looking for block info ******")
+        return block_usage_strings
+
+def delete_library_contents(self, block_usage_strings):
+    for usage_string in block_usage_strings:
+        usage_locator = BlockUsageLocator.from_string(usage_string)
+        print(f"###### About to attempt to delete {usage_string} ######")
+        self.store.delete_item(usage_locator, "delete_library management command")
+        print(f"###### Done deleting {usage_string} ######")
