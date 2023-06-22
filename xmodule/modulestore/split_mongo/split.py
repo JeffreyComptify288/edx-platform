@@ -686,6 +686,9 @@ class SplitMongoModuleStore(SplitBulkWriteMixin, ModuleStoreWriteBase):
 
         self.signal_handler = signal_handler
 
+    def bis_doit(self):
+        print("In bis_doit()")
+
     def close_connections(self):
         """
         Closes any open connections to the underlying databases

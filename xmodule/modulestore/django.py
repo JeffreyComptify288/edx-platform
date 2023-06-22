@@ -266,6 +266,8 @@ def create_modulestore_instance(
     for key in FUNCTION_KEYS:
         if key in _options and isinstance(_options[key], str):
             _options[key] = load_function(_options[key])
+    bis_doit = "xmodule.modulestore.split_mongo.split:SplitMongoModuleStore.bis_doit"
+    _options[bis_doit] = load_function(bis_doit)
 
     request_cache = DEFAULT_REQUEST_CACHE
 

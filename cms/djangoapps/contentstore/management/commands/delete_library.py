@@ -29,6 +29,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
+        self.store.bis_doit()
+        print("Returned from bis_doit()"
+
         print("****** In management command to delete library  ******")
         print("For now, processing all discovered libraries equally (ignoring CLI-supplied library key)")
         # library_key = self.get_library_key(options)
@@ -84,7 +87,7 @@ class Command(BaseCommand):
         if entry is None:
             raise Exception(f'Structure: {version_guid}')
         print("###### Done getting library structure ########")
-        
+
         print(f"****** Looking for block info on {str(library_key)} library")
         response_format = 'json'
         json_bytestring = library_blocks_view(lib, 'delete_library management command', response_format).content
