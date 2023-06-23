@@ -12,8 +12,8 @@ from openedx.core.djangoapps.oauth_dispatch.jwt import create_jwt_for_user
 from openedx.core.lib.edx_api_utils import get_api_data
 
 log = logging.getLogger(__name__)
-
 User = get_user_model()
+
 
 def get_credentials_records_url(program_uuid=None):
     """
@@ -109,6 +109,7 @@ def get_credentials(user, program_uuid=None, credential_type=None):
         cache_key=cache_key
     )
 
+
 # TODO: By the course run Ids, what do we mean? course run uuids? or course run keys?
 def get_course_completion_status(lms_user_id, course_run_ids):
     """
@@ -124,12 +125,11 @@ def get_course_completion_status(lms_user_id, course_run_ids):
         return []
 
     base_api_url = get_credentials_api_base_url()
-    completion_status_url =  f'{base_api_url}/api/credentials/learner_cert_status'
+    completion_status_url = f'{base_api_url}/api/credentials/learner_cert_status'
     try:
-    
         api_client = get_credentials_api_client(
-                User.objects.get(username=settings.CREDENTIALS_SERVICE_USERNAME)
-            )
+            User.objects.get(username=settings.CREDENTIALS_SERVICE_USERNAME)
+        )
         api_response = api_client.post(
             completion_status_url,
             data={
@@ -142,10 +142,11 @@ def get_course_completion_status(lms_user_id, course_run_ids):
         course_completion_response = api_response.json()
     except Exception as exc:  # pylint: disable=broad-except
         log.exception("An unexpected error occurred while reqeusting course completion statuses "
-                        "for lms_user_id [%s] for course_run_ids [%s] with exc [%s]:",
-                        lms_user_id,
-                        course_run_ids,
-                        exc)
+                      "for lms_user_id [%s] for course_run_ids [%s] with exc [%s]:",
+                      lms_user_id,
+                      course_run_ids,
+                      exc
+                      )
         return []
     if course_completion_response is not None:
         # Yes, This is course_credentials_data. The key is named status but

@@ -121,7 +121,6 @@ class TestGetCredentials(CredentialsApiConfigMixin, CacheIsolationTestCase):
         mock_get_api_client.return_value.post.return_value = Response()
         course_run_ids = [course_status['course_run']['uuid'] for course_status in course_statuses]
         api_response = get_course_completion_status(self.user.id, course_run_ids)
-        
         assert api_response == course_statuses
 
     @mock.patch('requests.Response.raise_for_status')

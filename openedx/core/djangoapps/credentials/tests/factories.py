@@ -26,6 +26,7 @@ class UserCredential(DictFactoryBase):
     certificate_url = factory.Faker('url')
     credential = ProgramCredential()
 
+
 class UserCredentialsCourseRunStatus(DictFactoryBase):
     course_uuid = str(factory.Faker('uuid4'))
     course_run = {
