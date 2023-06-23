@@ -15,7 +15,7 @@ from openedx.features.enterprise_support.enrollments.exceptions import (
     CourseIdMissingException,
     UserDoesNotExistException
 )
-from openedx.features.enterprise_support.enrollments.utils import lms_enroll_user_in_course
+from openedx.features.enterprise_support.enrollments.utils import lms_enroll_user_in_course, lms_upgrade_user_enrollment
 
 COURSE_STRING = 'course-v1:OpenEdX+OutlineCourse+Run3'
 ENTERPRISE_UUID = 'enterprise_uuid'
@@ -182,3 +182,46 @@ class EnrollmentUtilsTest(TestCase):
         )
 
         mock_get_enrollment_api.assert_called_once()
+
+
+    @mock.patch('openedx.features.enterprise_support.enrollments.utils.enrollment_api.update_enrollment')
+    @mock.patch('openedx.features.enterprise_support.enrollments.utils.enrollment_api.get_enrollment')
+    @mock.patch('openedx.features.enterprise_support.enrollments.utils.User.objects.get')
+    @mock.patch('openedx.features.enterprise_support.enrollments.utils.transaction')
+    def test_upgrade_user_enrollment(
+        self,
+        mock_tx,
+        mock_user_model,
+        mock_get_enrollment_api,
+        mock_update_enrollment_api,
+    ):
+        expected_response = {
+            'mode': 'verified',
+            'is_active': True,
+        }
+        enrollment_response = {
+            'mode': 'audit',
+            'is_active': True,
+        }
+
+        mock_update_enrollment_api.return_value = expected_response
+        mock_tx.return_value.atomic.side_effect = None
+
+        mock_get_enrollment_api.return_value = enrollment_response
+
+        mock_user_model.return_value = self.a_user
+
+        new_enrollment = lms_upgrade_user_enrollment(
+            USERNAME, COURSE_ID, 'verified'
+        )
+
+        assert new_enrollment == expected_response
+        mock_update_enrollment_api.assert_called_once_with(
+            USERNAME,
+            str(COURSE_ID),
+            mode='verified',
+            is_active=True,
+            enrollment_attributes=None,
+        )
+
+        mock_get_enrollment_api.assert_called_once_with(USERNAME, str(COURSE_ID))

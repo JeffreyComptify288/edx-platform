@@ -80,6 +80,56 @@ def lms_enroll_user_in_course(
                 user_id=user.id
             )
 
+def lms_upgrade_user_enrollment(
+        username,
+        course_id,
+        mode,
+        is_active=True,
+):
+    """
+    Attempts to upgrade the user's course enrollment from audit to verified.
+    Arguments:
+     - username (str): User name
+     - course_id (obj) : Course key obtained using CourseKey.from_string(course_id_input)
+     - mode (CourseMode): course mode
+     - is_active (bool): Optional. A Boolean value that indicates whether the
+        enrollment is to be set to inactive (if False). Usually we want a True if enrolling anew.
+
+    Returns:
+        A serializable dictionary of the updated course enrollment.
+    """
+    user = _validate_enrollment_inputs(username, course_id)
+
+    # get current enrollment for the user
+    current_enrollment = enrollment_api.get_enrollment(username, str(course_id))
+    # if the user is already enrolled in the audit track, attempt to upgrade to the verified track
+    if current_enrollment and current_enrollment['mode'] == 'audit':
+        with transaction.atomic():
+            try:
+                # update the enrollment mode to verified
+                response = enrollment_api.update_enrollment(
+                    username,
+                    str(course_id),
+                    mode=mode,
+                    is_active=is_active,
+                    enrollment_attributes=None,
+                )
+                log.info('The user [%s]\'s enrollmentd in course run [%s] has been upgraded.', username, course_id)
+                return response
+            except CourseEnrollmentError as error:
+                log.exception("An error occurred while creating the upgrading course enrollment for user "
+                          "[%s] in course run [%s]", username, course_id)
+                raise error
+            finally:
+                audit_log(
+                        'enrollment_change_requested',
+                        course_id=str(course_id),
+                        requested_mode=mode,
+                        actual_mode=current_enrollment['mode'] if current_enrollment else None,
+                        requested_activation=is_active,
+                        actual_activation=current_enrollment['is_active'] if current_enrollment else None,
+                        user_id=user.id
+                    )
 
 def _validate_enrollment_inputs(username, course_id):
     """
