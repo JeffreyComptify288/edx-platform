@@ -113,17 +113,17 @@ class TestUserPreferenceMiddleware(CacheIsolationTestCase):
         for logged_in in (True, False)
         for test_def in [
             # (Accept-Language In, Accept-Language Out)
-            (None, None),
-            (None, None),
-            (None, None),
-            ('en', 'en'),
-            ('en', 'en'),
-            (None, 'en'),
-            (None, 'en'),
-            ('eo', 'en;q=1.0,eo'),
-            ('en', 'en'),
-            ('en', 'en'),
-            ('eo', 'en;q=1.0,eo')
+            (None, None,),
+            (None, None,),
+            (None, None,),
+            ('en', 'en',),
+            ('en', 'en',),
+            (None, 'en',),
+            (None, 'en',),
+            ('eo', 'en;q=1.0,eo',),
+            ('en', 'en',),
+            ('en', 'en',),
+            ('eo', 'en;q=1.0,eo',)
         ]
     ))
     @ddt.unpack
