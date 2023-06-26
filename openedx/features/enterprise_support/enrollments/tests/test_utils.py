@@ -15,7 +15,7 @@ from openedx.features.enterprise_support.enrollments.exceptions import (
     CourseIdMissingException,
     UserDoesNotExistException
 )
-from openedx.features.enterprise_support.enrollments.utils import lms_enroll_user_in_course, lms_upgrade_user_enrollment
+from openedx.features.enterprise_support.enrollments.utils import lms_enroll_user_in_course, lms_upgrade_user_enrollment_mode
 
 COURSE_STRING = 'course-v1:OpenEdX+OutlineCourse+Run3'
 ENTERPRISE_UUID = 'enterprise_uuid'
@@ -188,7 +188,7 @@ class EnrollmentUtilsTest(TestCase):
     @mock.patch('openedx.features.enterprise_support.enrollments.utils.enrollment_api.get_enrollment')
     @mock.patch('openedx.features.enterprise_support.enrollments.utils.User.objects.get')
     @mock.patch('openedx.features.enterprise_support.enrollments.utils.transaction')
-    def test_upgrade_user_enrollment(
+    def test_upgrade_user_enrollment_mode(
         self,
         mock_tx,
         mock_user_model,
@@ -211,7 +211,7 @@ class EnrollmentUtilsTest(TestCase):
 
         mock_user_model.return_value = self.a_user
 
-        new_enrollment = lms_upgrade_user_enrollment(
+        new_enrollment = lms_upgrade_user_enrollment_mode(
             USERNAME, COURSE_ID, 'verified'
         )
 

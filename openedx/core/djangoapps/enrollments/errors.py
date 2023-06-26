@@ -52,3 +52,8 @@ class EnrollmentApiLoadError(CourseEnrollmentError):
 class InvalidEnrollmentAttribute(CourseEnrollmentError):
     """Enrollment Attributes could not be validated"""
     pass  # lint-amnesty, pylint: disable=unnecessary-pass
+
+
+class EnrollmentNotUpgradableError(CourseEnrollmentError):
+    """The requested enrollment could not be upgraded."""
+    pass  # lint-amnesty, pylint: disable=unnecessary-pass

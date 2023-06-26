@@ -8,7 +8,7 @@ from django.db import transaction
 
 from common.djangoapps.student.models import User
 from openedx.core.djangoapps.enrollments import api as enrollment_api
-from openedx.core.djangoapps.enrollments.errors import CourseEnrollmentError, CourseEnrollmentExistsError
+from openedx.core.djangoapps.enrollments.errors import CourseEnrollmentError, CourseEnrollmentExistsError, EnrollmentNotUpgradableError
 from openedx.core.lib.log_utils import audit_log
 from openedx.features.enterprise_support.enrollments.exceptions import (
     CourseIdMissingException,
@@ -80,10 +80,11 @@ def lms_enroll_user_in_course(
                 user_id=user.id
             )
 
-def lms_upgrade_user_enrollment(
+def lms_upgrade_user_enrollment_mode(
         username,
         course_id,
-        mode,
+        upgraded_mode="verified",
+        current_enrollment=None,
         is_active=True,
 ):
     """
@@ -101,22 +102,27 @@ def lms_upgrade_user_enrollment(
     user = _validate_enrollment_inputs(username, course_id)
 
     # get current enrollment for the user
-    current_enrollment = enrollment_api.get_enrollment(username, str(course_id))
-    # if the user is already enrolled in the audit track, attempt to upgrade to the verified track
-    if current_enrollment and current_enrollment['mode'] == 'audit':
+    if not current_enrollment:
+        current_enrollment = enrollment_api.get_enrollment(username, str(course_id))
+
+    if current_enrollment:
         with transaction.atomic():
             try:
                 # update the enrollment mode to verified
                 response = enrollment_api.update_enrollment(
                     username,
                     str(course_id),
-                    mode=mode,
+                    mode=upgraded_mode,
                     is_active=is_active,
                     enrollment_attributes=None,
                 )
-                log.info('The user [%s]\'s enrollmentd in course run [%s] has been upgraded.', username, course_id)
+                if not response or response['mode'] != upgraded_mode:
+                    raise EnrollmentNotUpgradableError(
+                        f"Unable to upgrade enrollment for user {username} in course {course_id} to {upgraded_mode} mode."
+                    )
+                log.info('The user [%s]\'s enrollment in course run [%s] has been upgraded.', username, course_id)
                 return response
-            except CourseEnrollmentError as error:
+            except EnrollmentNotUpgradableError as error:
                 log.exception("An error occurred while creating the upgrading course enrollment for user "
                           "[%s] in course run [%s]", username, course_id)
                 raise error
@@ -124,7 +130,7 @@ def lms_upgrade_user_enrollment(
                 audit_log(
                         'enrollment_change_requested',
                         course_id=str(course_id),
-                        requested_mode=mode,
+                        requested_mode=upgraded_mode,
                         actual_mode=current_enrollment['mode'] if current_enrollment else None,
                         requested_activation=is_active,
                         actual_activation=current_enrollment['is_active'] if current_enrollment else None,
