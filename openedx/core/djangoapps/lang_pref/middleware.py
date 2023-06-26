@@ -3,7 +3,6 @@ Middleware for Language Preferences
 """
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
-from django.utils.translation import LANGUAGE_SESSION_KEY
 from django.utils.translation.trans_real import parse_accept_lang_header
 
 from openedx.core.djangoapps.dark_lang import DARK_LANGUAGE_KEY
@@ -32,7 +31,7 @@ class LanguagePreferenceMiddleware(MiddlewareMixin):
         If you specify the LANGUAGE_CODE in SiteConfiguration, it will have a higher priority than the user's language
         preference.
         """
-        cookie_lang = lang_pref_helpers.get_language_cookie(request)
+        cookie_lang = lang_pref_helpers.get_request_language_cookie(request)
         if cookie_lang:
             if request.user.is_authenticated:
                 # DarkLangMiddleware will take care of this so don't change anything
@@ -52,10 +51,6 @@ class LanguagePreferenceMiddleware(MiddlewareMixin):
             else:
                 accept_header = cookie_lang
             request.META[LANGUAGE_HEADER] = accept_header
-
-            # Allow the new cookie setting to update the language in the user's session
-            if LANGUAGE_SESSION_KEY in request.session and request.session[LANGUAGE_SESSION_KEY] != cookie_lang:
-                del request.session[LANGUAGE_SESSION_KEY]
 
         # Apply language specified in SiteConfiguration, ignoring user preferences.
         if language := get_value('LANGUAGE_CODE'):
@@ -89,8 +84,8 @@ class LanguagePreferenceMiddleware(MiddlewareMixin):
 
             # If set, set the user_pref in the LANGUAGE_COOKIE_NAME
             if user_pref and not is_request_from_mobile_app(request):
-                lang_pref_helpers.set_language_cookie(request, response, user_pref)
+                lang_pref_helpers.set_response_language_cookie(request, response, user_pref)
             else:
-                lang_pref_helpers.unset_language_cookie(response)
+                lang_pref_helpers.unset_response_language_cookie(response)
 
         return response

@@ -10,13 +10,12 @@ the SessionMiddleware.
 
 
 from django.conf import settings
-from django.utils.translation import LANGUAGE_SESSION_KEY
 from django.utils.translation.trans_real import parse_accept_lang_header
 from django.utils.deprecation import MiddlewareMixin
 
 from openedx.core.djangoapps.dark_lang import DARK_LANGUAGE_KEY
 from openedx.core.djangoapps.dark_lang.models import DarkLangConfig
-from openedx.core.djangoapps.lang_pref.helpers import set_language_cookie
+from openedx.core.djangoapps.lang_pref.helpers import set_response_language_cookie
 from openedx.core.djangoapps.user_api.preferences.api import get_user_preference
 
 # If django 1.7 or higher is used, the right-side can be updated with new-style codes.
@@ -155,6 +154,5 @@ class DarkLangMiddleware(MiddlewareMixin):
         if not preview_lang:
             return
 
-        # Set the session key to the requested preview lang
-        request.session[LANGUAGE_SESSION_KEY] = preview_lang
-        set_language_cookie(request, response, preview_lang)
+        # Set the set_response_language_cookie to the requested preview lang
+        set_response_language_cookie(response, preview_lang)

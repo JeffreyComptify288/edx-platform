@@ -6,14 +6,19 @@ from django.conf import settings
 from openedx.core.djangoapps.lang_pref import COOKIE_DURATION
 
 
-def get_language_cookie(request, default=None):
+def get_request_language_cookie(request, default=None):
     """
     Return the language cookie stored in the request object.
     """
     return request.COOKIES.get(settings.LANGUAGE_COOKIE_NAME, default)
 
+def set_request_language_cookie(request, value):
+    """
+    Set the language cookie in the request object.
+    """
+    request.COOKIES[settings.LANGUAGE_COOKIE_NAME] = value
 
-def set_language_cookie(request, response, value):
+def set_response_language_cookie(request, response, value):
     """
     Set the language cookie in the response object.
     """
@@ -26,8 +31,7 @@ def set_language_cookie(request, response, value):
         samesite="None" if request.is_secure() else "Lax",
     )
 
-
-def unset_language_cookie(response):
+def unset_response_language_cookie(response):
     """
     Remove the language cookie from the response object.
     """
